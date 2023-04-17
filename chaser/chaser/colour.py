@@ -13,6 +13,7 @@ from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Image
 import cv2
 import numpy as np
 
+
 class ColourChaser(Node):
     def __init__(self):
         super().__init__('colour_chaser')
@@ -58,6 +59,12 @@ class ColourChaser(Node):
         contoursRed2, hierarchy = cv2.findContours(current_frame_maskRed2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         # Add together all colour contours
+        # Each colour is a list of contours
+        # If colour is found remove contour list {contoursGreen = []}
+        
+        # When coloured thing is in center, reduce the turning of the robot
+        # When something hit the scanners ranges[0], and coloured thing is in center then
+        # report that the colour has been found and where it is 
         contours = contoursYellow + contoursGreen + contoursBlue + contoursRed + contoursRed2
         
 
@@ -95,12 +102,12 @@ class ColourChaser(Node):
             else:
                 print("No Centroid Large Enougth Found")
                 # turn until we can see a coloured object
-                self.turn_vel = 0.3
+                # self.turn_vel = 0.3
                         
         else:
             print("No Centroid Found")
             # turn until we can see a coloured object
-            self.turn_vel = 0.3
+            # self.turn_vel = 0.3
 
         # show the cv images
         current_frame_contours_small = cv2.resize(current_frame_contours, (0,0), fx=0.4, fy=0.4) # reduce image size

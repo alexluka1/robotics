@@ -27,6 +27,9 @@ class stopColl(Node):
     def callback(self, msg):
         move = Twist()
         collision = False
+
+        safe_distance = 0.8
+
         # msg contains scan data
         # range list contains all groups of degrees, index has group of degrees
 
@@ -53,15 +56,26 @@ class stopColl(Node):
         #     move.angular.z = 0.3
         # else:
         #     collision = False
+
+        # frontClear = msg.ranges[0] > safe_distance and msg.ranges[30] > safe_distance and msg.ranges[330] > safe_distance
+
+        # If any sensors around the front of the robot detect anything then
+        # it will spin
+        frontClear = msg.ranges[0] > safe_distance
+        for safety in range(60):
+            frontClear = frontClear and msg.ranges[safety] > safe_distance
+            frontClear = frontClear and msg.ranges[-safety] > safe_distance
         
         for r in range(0, len(msg.ranges), 30):
-            if (r == 180 and msg.ranges[r] < 0.8 and msg.ranges[0] > 0.8):
-                print(f"Seems to be clear")
+            # If there is something within range but front is clear, go forwards
+            
+            if (msg.ranges[r] < safe_distance and frontClear):
+                print(f"Seems to be clear in front")
                 move.linear.x = 0.5
                 move.angular.z = 0.0
                 collision = True
-
-            elif (msg.ranges[r] < 0.8):
+            # If something is close to robot then spin
+            elif (msg.ranges[r] < safe_distance or frontClear == False):
                 print(f"Collision at laser point {r}")
                 move.linear.x = 0.0
                 move.angular.z = 0.3

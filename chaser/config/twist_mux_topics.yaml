@@ -11,7 +11,7 @@ twist_mux:
       colChaser:
         topic   : colour_vel
         timeout : 0.5
-        priority: 10
+        priority: 90
       collision:
         topic   : collision_flag
         timeout : 0.5
