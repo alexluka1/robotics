@@ -1,6 +1,6 @@
 from setuptools import setup
 import os
-from glob import glob
+from glob import glob # AHHH
 
 package_name = 'chaser'
 
@@ -28,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [
             'chaser = chaser.colour:main',
+            'collision = chaser.collision:main',
         ],
     },
 )

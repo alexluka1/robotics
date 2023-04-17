@@ -55,7 +55,13 @@ class stopColl(Node):
         #     collision = False
         
         for r in range(0, len(msg.ranges), 30):
-            if (msg.ranges[r] < 0.8):
+            if (r == 180 and msg.ranges[r] < 0.8 and msg.ranges[0] > 0.8):
+                print(f"Seems to be clear")
+                move.linear.x = 0.5
+                move.angular.z = 0.0
+                collision = True
+
+            elif (msg.ranges[r] < 0.8):
                 print(f"Collision at laser point {r}")
                 move.linear.x = 0.0
                 move.angular.z = 0.3
