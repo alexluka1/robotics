@@ -14,7 +14,7 @@ class stopColl(Node):
     def __init__(self):
         super().__init__('stop_collisions') # calls super's initialiser (so Node init method) and names node
 
-        self.safe_distance = 0.7
+        self.safe_distance = 0.8
         
         self.subscription = self.create_subscription(
             LaserScan,
@@ -82,10 +82,12 @@ class stopColl(Node):
                 collision = True
 
                 # If object is on left turn right, etc
-                if r >= 180:
+                if r >= 180 and r < 400: # 225
+                    move.angular.z = 0.3
+                elif r >= 0 and r < 180: # 135
                     move.angular.z = -0.3
                 else:
-                    move.angular.z = 0.3
+                    move.angular.z = -0.3
 
 
         # output message when a condition has been met

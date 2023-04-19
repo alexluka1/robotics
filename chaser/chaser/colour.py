@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# This code was adapted from the github page 
+#https://github.com/LCAS/teaching/tree/lcas_humble/cmp3103m_ros2_code_fragments
+
 # An example of TurtleBot 3 subscribe to camera topic, mask colours, find and display contours, and move robot to center the object in image frame
 # Written for humble
 # cv2 image types - http://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
@@ -13,13 +16,31 @@ from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Image
 import cv2
 import numpy as np
 
+# Detecting if within 1m
+from sensor_msgs.msg import LaserScan
+
 
 class ColourChaser(Node):
     def __init__(self):
         super().__init__('colour_chaser')
         
         self.turn_vel = 0.0
+        self.speed = 0.0
         self.finding = False
+
+        # -----------
+        # Once a colour has been found this will be set to True
+        # and all masks associated will be turned off 
+        self.colourFinding = {"Yellow": False,
+                         "Blue": False,
+                         "Green": False,
+                         "Red": False}
+        # Used when determining if close enougth to a colour to say its found
+        self.possibleFinding = {"Yellow": False,
+                         "Blue": False,
+                         "Green": False,
+                         "Red": False} 
+        # -----------
 
         # publish cmd_vel topic to move the robot
         self.pub_vel = self.create_publisher(Twist, 'colour_vel', 10)
@@ -31,10 +52,42 @@ class ColourChaser(Node):
         # subscribe to the camera topic
         self.create_subscription(Image, '/camera/image_raw', self.camera_callback, 10)
 
+
+        # Subs to laser to check coloured obj is withing distance
+        self.laser_subscription = self.create_subscription(
+            LaserScan,
+            'scan', # subscribes to the scan topic
+            self.laser_callback,
+            10)
+        
+
         # Used to convert between ROS and OpenCV images
         self.br = CvBridge()
 
+        # -------- Ticking off list
+        # self.finding_timer = self.create_timer(timer_period, self.timer_finding_callback)
+
+
+    def laser_callback(self, msg):
+        frontDist = msg.ranges[0]
+
+        for findings in self.possibleFinding:
+            if self.possibleFinding[findings] == True and frontDist < 1.0:
+                self.colourFinding[findings] = True
+                print(f"Found {findings}")
+                print(self.colourFinding)
+
+    
+
+    
+    
     def camera_callback(self, data):
+        # -------- Resetting attributes
+        for findings in self.possibleFinding:
+            self.possibleFinding[findings] = False
+        # -------- Resetting attributes
+        
+        
         #self.get_logger().info("camera_callback")
 
         cv2.namedWindow("Image window", 1)
@@ -59,6 +112,14 @@ class ColourChaser(Node):
         contoursRed, hierarchy = cv2.findContours(current_frame_maskRed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contoursRed2, hierarchy = cv2.findContours(current_frame_maskRed2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        # Dictionary to match colours up to contours
+        contours_dict = {
+            "Yellow": [contoursYellow],
+            "Blue": [contoursBlue],
+            "Green": [contoursGreen],
+            "Red": [contoursRed, contoursRed2]
+        }
+        
         # Add together all colour contours
         # Each colour is a list of contours
         # If colour is found remove contour list {contoursGreen = []}
@@ -66,7 +127,15 @@ class ColourChaser(Node):
         # When coloured thing is in center, reduce the turning of the robot
         # When something hit the scanners ranges[0], and coloured thing is in center then
         # report that the colour has been found and where it is 
-        contours = contoursYellow + contoursGreen + contoursBlue + contoursRed + contoursRed2
+
+        # Adds each colour that has not been found to contours list
+        # contours = contoursYellow + contoursGreen + contoursBlue + contoursRed + contoursRed2
+        contours = []
+        for colour in self.colourFinding:
+            if self.colourFinding[colour] == False:
+                for col in contours_dict[colour]:
+                    contours += col
+        contoursYellow + contoursGreen + contoursBlue + contoursRed + contoursRed2
         
 
         # Sort by area (keep only the biggest one)
@@ -81,7 +150,7 @@ class ColourChaser(Node):
         current_frame_contours = cv2.drawContours(current_frame, contours, 0, (0, 255, 0), 20)
         
         if len(contours) > 0:
-            if (len(contours[0]) > 10): # if largest contour is larger than 200  
+            if (len(contours[0]) > 10): # if largest contour is larger than x 
                 # find the centre of the contour: https://docs.opencv.org/3.4/d8/d23/classcv_1_1Moments.html
                 M = cv2.moments(contours[0]) # only select the largest controur
 
@@ -103,31 +172,48 @@ class ColourChaser(Node):
                     self.finding = True # Robot has an object in its sights
 
                     # if center of object is to the left of image center move left
-                    if cx < 900:
+                    if cx < 700: # 900
                         self.turn_vel = 0.3
                     # else if center of object is to the right of image center move right
-                    elif cx >= 1200:
+                    elif cx >= 1000: #1200
                         self.turn_vel = -0.3
-                    else: # center of object is in a 100 px range in the center of the image so dont turn
+                    # Added more variations of turn speed to increace accuracy
+                    elif cx < 900:
+                        self.turn_vel = 0.1
+                        self.speed = 0.1
+                    elif cx >= 1200:
+                        self.turn_vel = -0.1
+                        self.speed = 0.1
+                    # elif cx < 1000:
+                    #     self.turn_vel = 0.05
+                    #     self.speed = 0.05
+                    # elif cx >= 1300:
+                    #     self.turn_vel = -0.05
+                    #     self.speed = 0.05
+                    else: # center of object is in a x px range in the center of the image so dont turn
                         # print("Object in the center of image")
                         self.turn_vel = 0.0
 
-                        # -------------------
-                        # Found obj
-                        # if len(contoursYellow) != 0 and len(contoursYellow[0]) == len(contours[0]):
-                        #     if (contoursYellow[0] & contours[0]).all():
-                        #         print("Found Yellow")
-                        # -------------------
+
                         # -----------
-                        # Dealing with yellow objects
-                        if len(contoursYellow) > 0:
-                            yellowMom = cv2.moments(contoursYellow[0])
+                        # Dealing with coloured objects
+                        # if len(contoursYellow) > 0:
+                        #     yellowMom = cv2.moments(contoursYellow[0])
 
-                            yellowCx = int(yellowMom['m10']/yellowMom['m00'])
-                            yellowCy = int(yellowMom['m01']/yellowMom['m00'])
+                        #     yellowCx = int(yellowMom['m10']/yellowMom['m00'])
+                        #     yellowCy = int(yellowMom['m01']/yellowMom['m00'])
 
-                            if yellowCx == cx and yellowCy == cy:
-                                print(f"Found Yellow!")
+                        #     if yellowCx == cx and yellowCy == cy:
+                        #         print(f"Seen Yellow!")
+                        #         self.possibleFinding["Yellow"] = True
+
+                        self.seen_colours("Yellow", contoursYellow, cx, cy)
+                        self.seen_colours("Blue", contoursBlue, cx, cy)
+                        self.seen_colours("Green", contoursGreen, cx, cy)
+                        self.seen_colours("Red", contoursRed, cx, cy)
+                        self.seen_colours("Red", contoursRed2, cx, cy)
+
+
                         # -----------
             else:
                 # print("No Centroid Large Enougth Found")
@@ -148,6 +234,20 @@ class ColourChaser(Node):
         cv2.imshow("Image window", current_frame_contours_small)
         cv2.waitKey(1)
 
+
+    def seen_colours(self, colour, contour, cx, cy):
+        if len(contour) > 0:
+            if (len(contour[0]) > 10):
+                moment = cv2.moments(contour[0])
+
+                contour_cx = int(moment['m10']/moment['m00'])
+                contour_cy = int(moment['m01']/moment['m00'])
+
+                if contour_cx == cx and contour_cy == cy:
+                    print(f"Seen {colour}")
+                    self.possibleFinding[colour] = True
+
+
     def timer_callback(self):
         #print('entered timer_callback')
 
@@ -161,7 +261,7 @@ class ColourChaser(Node):
             self.pub_vel.publish(self.tw)
 
 def main(args=None):
-    print('Starting colour_chaser.py.')
+    print('Starting Colour Chaser.')
 
     rclpy.init(args=args)
 

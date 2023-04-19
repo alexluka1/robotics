@@ -1,3 +1,13 @@
+# twist mux is used to help with ros topics for requires downloading to root on every launch 
+# http://wiki.ros.org/twist_mux
+# download guide below:
+# 
+# sudo apt update
+# sudo apt install ros-humble-twist-mux
+
+
+
+
 #!/usr/bin/env python3
 # Copyright 2020 Gaitech Korea Co., Ltd.
 #
