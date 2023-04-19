@@ -8,6 +8,10 @@
 twist_mux:
   ros__parameters:
     topics:
+      spin:
+        topic   : spin_vel
+        timeout : 1.0
+        priority: 80
       colChaser:
         topic   : colour_vel
         timeout : 0.5

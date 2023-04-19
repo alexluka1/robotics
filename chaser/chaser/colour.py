@@ -19,6 +19,7 @@ class ColourChaser(Node):
         super().__init__('colour_chaser')
         
         self.turn_vel = 0.0
+        self.finding = False
 
         # publish cmd_vel topic to move the robot
         self.pub_vel = self.create_publisher(Twist, 'colour_vel', 10)
@@ -66,35 +67,40 @@ class ColourChaser(Node):
         # When something hit the scanners ranges[0], and coloured thing is in center then
         # report that the colour has been found and where it is 
         contours = contoursYellow + contoursGreen + contoursBlue + contoursRed + contoursRed2
-
         
-        # Sorts all the contours for checking what colour has been found
-        contoursYellow = sorted(contoursYellow, key=cv2.contourArea, reverse=True)[:1]
 
-        
         # Sort by area (keep only the biggest one)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
-        # if len(contours) > 0:
-        #     print(f"\n-------------------------------\n{contours[0]}\n-------------------------------\n") # List o pixels
+
+        # -----------
+        # Sorts all the contours for checking what colour has been found
+        contoursYellow = sorted(contoursYellow, key=cv2.contourArea, reverse=True)[:1]
+        # -----------
 
         # Draw contour(s) (image to draw on, contours, contour number -1 to draw all contours, colour, thickness):
         current_frame_contours = cv2.drawContours(current_frame, contours, 0, (0, 255, 0), 20)
         
         if len(contours) > 0:
-            if (len(contours[0]) > 10): # if largest contour is larger than x 
+            if (len(contours[0]) > 10): # if largest contour is larger than 200  
                 # find the centre of the contour: https://docs.opencv.org/3.4/d8/d23/classcv_1_1Moments.html
                 M = cv2.moments(contours[0]) # only select the largest controur
+
+
                 if M['m00'] > 0:
                     # find the centroid of the contour
                     cx = int(M['m10']/M['m00'])
                     cy = int(M['m01']/M['m00'])
                     #print("Centroid of the biggest area: ({}, {})".format(cx, cy))
 
+
+
                     # Draw a circle centered at centroid coordinates
                     # cv2.circle(image, center_coordinates, radius, color, thickness) -1 px will fill the circle
                     cv2.circle(current_frame, (round(cx), round(cy)), 50, (0, 255, 0), -1)
                                 
                     # find height/width of robot camera image from ros2 topic echo /camera/image_raw height: 1080 width: 1920
+
+                    self.finding = True # Robot has an object in its sights
 
                     # if center of object is to the left of image center move left
                     if cx < 900:
@@ -103,22 +109,39 @@ class ColourChaser(Node):
                     elif cx >= 1200:
                         self.turn_vel = -0.3
                     else: # center of object is in a 100 px range in the center of the image so dont turn
-                        print("Object in the center of image")
+                        # print("Object in the center of image")
                         self.turn_vel = 0.0
 
+                        # -------------------
                         # Found obj
-                        if len(contoursYellow) != 0:
-                            if (contoursYellow[0] & contours[0]).all():
-                                print("Found Yellow")
-            # else:
+                        # if len(contoursYellow) != 0 and len(contoursYellow[0]) == len(contours[0]):
+                        #     if (contoursYellow[0] & contours[0]).all():
+                        #         print("Found Yellow")
+                        # -------------------
+                        # -----------
+                        # Dealing with yellow objects
+                        if len(contoursYellow) > 0:
+                            yellowMom = cv2.moments(contoursYellow[0])
+
+                            yellowCx = int(yellowMom['m10']/yellowMom['m00'])
+                            yellowCy = int(yellowMom['m01']/yellowMom['m00'])
+
+                            if yellowCx == cx and yellowCy == cy:
+                                print(f"Found Yellow!")
+                        # -----------
+            else:
                 # print("No Centroid Large Enougth Found")
                 # turn until we can see a coloured object
                 # self.turn_vel = 0.3
+                self.turn_vel = 0.0 # Stop turning when none seen
+                self.finding = False # Robot has no object in its sights
                         
-        # else:
+        else:
             # print("No Centroid Found")
             # turn until we can see a coloured object
             # self.turn_vel = 0.3
+            self.turn_vel = 0.0
+            self.finding = False # Robot has no object in its sights
 
         # show the cv images
         current_frame_contours_small = cv2.resize(current_frame_contours, (0,0), fx=0.4, fy=0.4) # reduce image size
@@ -128,13 +151,14 @@ class ColourChaser(Node):
     def timer_callback(self):
         #print('entered timer_callback')
 
-        self.tw=Twist() # twist message to publish
+        self.tw = Twist() # twist message to publish
 
         self.tw.angular.z = self.turn_vel
 
-        self.tw.linear.x = 0.25 # Changed to move robot forwards
-
-        self.pub_vel.publish(self.tw)
+        # self.tw.linear.x = 0.25 # Changed to move robot forwards
+        if (self.finding == True): # If robot has object in camera then turn towards it
+            self.tw.linear.x = 0.25
+            self.pub_vel.publish(self.tw)
 
 def main(args=None):
     print('Starting colour_chaser.py.')

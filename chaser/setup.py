@@ -29,6 +29,7 @@ setup(
         'console_scripts': [
             'chaser = chaser.colour:main',
             'collision = chaser.collision:main',
+            'spin = chaser.spin:main',
         ],
     },
 )
