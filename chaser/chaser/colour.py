@@ -66,16 +66,22 @@ class ColourChaser(Node):
         # When something hit the scanners ranges[0], and coloured thing is in center then
         # report that the colour has been found and where it is 
         contours = contoursYellow + contoursGreen + contoursBlue + contoursRed + contoursRed2
-        
 
+        
+        # Sorts all the contours for checking what colour has been found
+        contoursYellow = sorted(contoursYellow, key=cv2.contourArea, reverse=True)[:1]
+
+        
         # Sort by area (keep only the biggest one)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
+        # if len(contours) > 0:
+        #     print(f"\n-------------------------------\n{contours[0]}\n-------------------------------\n") # List o pixels
 
         # Draw contour(s) (image to draw on, contours, contour number -1 to draw all contours, colour, thickness):
         current_frame_contours = cv2.drawContours(current_frame, contours, 0, (0, 255, 0), 20)
         
         if len(contours) > 0:
-            if (len(contours[0]) > 10): # if largest contour is larger than 200  
+            if (len(contours[0]) > 10): # if largest contour is larger than x 
                 # find the centre of the contour: https://docs.opencv.org/3.4/d8/d23/classcv_1_1Moments.html
                 M = cv2.moments(contours[0]) # only select the largest controur
                 if M['m00'] > 0:
@@ -97,15 +103,20 @@ class ColourChaser(Node):
                     elif cx >= 1200:
                         self.turn_vel = -0.3
                     else: # center of object is in a 100 px range in the center of the image so dont turn
-                        #print("object in the center of image")
+                        print("Object in the center of image")
                         self.turn_vel = 0.0
-            else:
-                print("No Centroid Large Enougth Found")
+
+                        # Found obj
+                        if len(contoursYellow) != 0:
+                            if (contoursYellow[0] & contours[0]).all():
+                                print("Found Yellow")
+            # else:
+                # print("No Centroid Large Enougth Found")
                 # turn until we can see a coloured object
                 # self.turn_vel = 0.3
                         
-        else:
-            print("No Centroid Found")
+        # else:
+            # print("No Centroid Found")
             # turn until we can see a coloured object
             # self.turn_vel = 0.3
 
