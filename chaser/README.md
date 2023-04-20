@@ -1,36 +1,45 @@
-## Summary <br>
+# Summary <br>
 
-This assignment consists of one ROS2 package _chaser_, with three Python scripts: _collision.py_ _chaser.py_ _spin.py_. This package implements behaviours that will help the robot find coloured objects. <br>
+This assignment consists of one ROS2 package _chaser_, with three Python scripts: `collision.py`, `chaser.py` `spin.py`. This package implements behaviours that will help the robot find coloured objects. <br>
 Twist_mux was used to allow all these different nodes to publish to the /cmd_vel topic, making it possible to add priority to these behaviours.
 
-The _laserScan_, _Image_ and _Twist_ messages with their respective topics were predominatly used for this implementation. _laserScan_ was used to stop collisions, _Image_ was used to detect colours and _Twist_ was used to move the robot.
+The `laserScan`, `Image` and `Twist` messages with their respective topics were predominatly used for this implementation. `laserScan` was used to stop collisions, `Image` was used to detect colours and `Twist` was used to move the robot.
 
-## Installation <br>
+# Installation <br>
 
-Twist_mux was used in this package and can be installed with the following commands: <br>
+`Twist_mux` was used in this package and can be installed with the following commands: <br>
 
-_sudo apt update_
-<br>
-_sudo apt install ros-humble-twist-mux_
+```bash
+sudo apt update
+sudo apt install ros-humble-twist-mux
+```
 
-## Commands <br>
+# Commands <br>
 
-Once Twist_mux is installed the package can be used to find coloured objects. <br>
+Once `Twist_mux` is installed the package can be used to find coloured objects. <br>
 Below are commands to start the package with the Gazebo world. <br>
 
-_ros2 launch uol_turtlebot_simulator object-search-1.launch.py_
+```bash
+ros2 launch uol_turtlebot_simulator object-search-1.launch.py
+```
+
 <br>
 
-# robotics workspace directory <br>
+## robotics workspace directory <br>
 
-_ros2 launch chaser twist_mux_launch.py_
 <br> <br>
 To run all of the package nodes individually: <br>
 
-_ros2 run chaser collision_ <br>
-_ros2 run chaser spin_ <br>
-_ros2 run chaser chaser_ <br>
+```bash
+ros2 run chaser collision
+ros2 run chaser spin
+ros2 run chaser chaser
+ros2 launch chaser twist_mux_launch.py
+```
 
 <br> <br>
 To use the launch file: <br>
-_ros2 launch chaser nodes_launch.py_
+
+```bash
+ros2 launch chaser nodes_launch.py
+```
