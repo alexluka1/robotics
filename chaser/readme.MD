@@ -28,6 +28,6 @@ Below are commands to start the package with the Gazebo world. <br>
 <br>
 To run all of the package nodes individually: <br>
 
-*ros2 run chaser collision*
-*ros2 run chaser spin*
-*ros2 run chaser chaser*
+*ros2 run chaser collision* <br>
+*ros2 run chaser spin* <br>
+*ros2 run chaser chaser* <br>
