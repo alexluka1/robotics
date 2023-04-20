@@ -49,7 +49,7 @@ class stopColl(Node):
                 collision = True
             # If something is close to robot then spin
             elif (msg.ranges[r] < self.safe_distance or frontClear == False):
-                print(f"Collision at laser point {r}")
+                # print(f"Collision at laser point {r}")
                 move.linear.x = 0.0
                 collision = True
 
