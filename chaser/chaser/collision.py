@@ -28,48 +28,20 @@ class stopColl(Node):
 
     def callback(self, msg):
         move = Twist()
-        collision = False
-
-
-        # msg contains scan data
-        # range list contains all groups of degrees, index has group of degrees
-
-
-        ## Added an angular velocity to spin the robot out of being stuck
-        # This is forwards
-        # if (msg.ranges[0] < 1):
-        #     print("0")
-        #     move.linear.x = 0.0
-        #     move.angular.z = 0.3
-        # # This is left
-        # elif (msg.ranges[90] < 0.5):
-        #     print("90")
-        #     move.linear.x = 0.0
-        #     move.angular.z = 0.3
-        # elif (msg.ranges[180] < 1):
-        #     print("180")
-        #     move.linear.x = 0.0
-        #     move.angular.z = 0.3
-        # # Right
-        # elif (msg.ranges[270] < 0.5):
-        #     print("270")
-        #     move.linear.x = 0.0
-        #     move.angular.z = 0.3
-        # else:
-        #     collision = False
+        collision = False # Bool for if msg shpuld be published
 
         # frontClear = msg.ranges[0] > self.safe_distance and msg.ranges[30] > self.safe_distance and msg.ranges[330] > self.safe_distance
 
         # If any sensors around the front of the robot detect anything then
         # it will spin
-        frontClear = msg.ranges[0] > self.safe_distance
-        for safety in range(60):
+        frontClear = msg.ranges[0] > self.safe_distance # Bool value
+        for safety in range(50):
             frontClear = frontClear and msg.ranges[safety] > self.safe_distance
             frontClear = frontClear and msg.ranges[-safety] > self.safe_distance
         
+        # Will loop over all ranges with a step of 30 
         for r in range(0, len(msg.ranges), 30):
             # If there is something within range but front is clear, go forwards
-            
             if (msg.ranges[r] < self.safe_distance and frontClear):
                 print(f"Seems to be clear in front")
                 move.linear.x = 0.25
@@ -82,6 +54,7 @@ class stopColl(Node):
                 collision = True
 
                 # If object is on left turn right, etc
+                # Only attempts as will turn right when both left and right below threshold
                 if r >= 180 and r < 400: # 225
                     move.angular.z = 0.3
                 elif r >= 0 and r < 180: # 135

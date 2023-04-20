@@ -70,7 +70,7 @@ class ColourChaser(Node):
 
     def laser_callback(self, msg):
         frontDist = msg.ranges[0]
-
+        # Controls when the objects are found
         for findings in self.possibleFinding:
             if self.possibleFinding[findings] == True and frontDist < 1.0:
                 self.colourFinding[findings] = True
@@ -105,7 +105,7 @@ class ColourChaser(Node):
         current_frame_maskRed = cv2.inRange(current_frame_hsv,(170,100,0), (180,255,255)) # Red
         current_frame_maskRed2 = cv2.inRange(current_frame_hsv,(0,100,0), (5,255,255)) # Red
 
-
+        # Coloured contours
         contoursYellow, hierarchy = cv2.findContours(current_frame_maskYellow, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contoursGreen, hierarchy = cv2.findContours(current_frame_maskGreen, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contoursBlue, hierarchy = cv2.findContours(current_frame_maskBlue, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -207,6 +207,7 @@ class ColourChaser(Node):
                         #         print(f"Seen Yellow!")
                         #         self.possibleFinding["Yellow"] = True
 
+                        # Make it possible to find all the colours
                         self.seen_colours("Yellow", contoursYellow, cx, cy)
                         self.seen_colours("Blue", contoursBlue, cx, cy)
                         self.seen_colours("Green", contoursGreen, cx, cy)
@@ -234,30 +235,29 @@ class ColourChaser(Node):
         cv2.imshow("Image window", current_frame_contours_small)
         cv2.waitKey(1)
 
-
+    ## Method to check off colours that have been seen
     def seen_colours(self, colour, contour, cx, cy):
         if len(contour) > 0:
             if (len(contour[0]) > 10):
                 moment = cv2.moments(contour[0])
 
-                contour_cx = int(moment['m10']/moment['m00'])
-                contour_cy = int(moment['m01']/moment['m00'])
+                if moment['m00'] > 0:
+                    contour_cx = int(moment['m10']/moment['m00'])
+                    contour_cy = int(moment['m01']/moment['m00'])
 
-                if contour_cx == cx and contour_cy == cy:
-                    print(f"Seen {colour}")
-                    self.possibleFinding[colour] = True
+                    if contour_cx == cx and contour_cy == cy:
+                        print(f"Seen {colour}")
+                        self.possibleFinding[colour] = True
 
 
     def timer_callback(self):
-        #print('entered timer_callback')
-
         self.tw = Twist() # twist message to publish
 
         self.tw.angular.z = self.turn_vel
 
-        # self.tw.linear.x = 0.25 # Changed to move robot forwards
+        
         if (self.finding == True): # If robot has object in camera then turn towards it
-            self.tw.linear.x = 0.25
+            self.tw.linear.x = 0.25 # Move towards object
             self.pub_vel.publish(self.tw)
 
 def main(args=None):
